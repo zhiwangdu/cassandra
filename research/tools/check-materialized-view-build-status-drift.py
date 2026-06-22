@@ -262,7 +262,7 @@ DOC_TOKEN_CHECKS = {
         "module-materialized-view-build-status-matrix.md",
         "module-materialized-view-build-status-drift-checker.md",
         "check-materialized-view-build-status-drift.py",
-        "79 个 research checker",
+        "80 个 research checker",
     ),
     SOURCE_MAP_DOC: (
         "Materialized view build/status drift",
