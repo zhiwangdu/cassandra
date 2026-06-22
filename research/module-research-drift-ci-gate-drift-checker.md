@@ -6,7 +6,7 @@
 
 | Area | Checks |
 | --- | --- |
-| Inventory | There are 72 `research/tools/check-*.py` files, including this checker and key adjacent checkers. |
+| Inventory | There are 73 `research/tools/check-*.py` files, including this checker and key adjacent checkers. |
 | Tool shape | Research checkers keep the Python shebang and repo-local layout. |
 | Runner | `research/tools/run-research-drift-checks.py` discovers `check-*.py`, supports selection/parallelism/JSON output, and is not counted as a checker. |
 | Ant boundary | `build.xml` still has the `check` and test targets, and does not invoke research drift checkers. |
@@ -23,7 +23,7 @@ python3 research/tools/check-research-drift-ci-gate-drift.py
 Expected output:
 
 ```text
-OK research drift CI gate checks passed (72 checkers, 10 scenarios)
+OK research drift CI gate checks passed (73 checkers, 10 scenarios)
 ```
 
 Use JSON output when wiring automation:
