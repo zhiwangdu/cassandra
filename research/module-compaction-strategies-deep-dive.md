@@ -187,3 +187,4 @@ Manager startup loads canonical SSTables into holders, starts strategies, and en
 - UCS controller/sharded writer 单测入口：`test/unit/org/apache/cassandra/db/compaction/unified/ControllerTest.java`、`test/unit/org/apache/cassandra/db/compaction/unified/ShardedMultiWriterTest.java`、`test/unit/org/apache/cassandra/db/compaction/unified/ShardedCompactionWriterTest.java`。
 - UCS density 和 compaction disk space distributed 覆盖：`test/distributed/org/apache/cassandra/distributed/test/UnifiedCompactionDensitiesTest.java`、`test/distributed/org/apache/cassandra/distributed/test/CompactionDiskSpaceTest.java`。
 - overlap/failure 场景 distributed 覆盖：`test/distributed/org/apache/cassandra/distributed/test/CompactionOverlappingSSTableTest.java`。
+- 生产运行面的 `compaction_task_snapshot_space_reduction` 与 `compaction_disk_space_failure_coverage` 场景由 `module-compaction-operations-failure-matrix.md` 和 `research/tools/check-compaction-operations-drift.py` 继续保护。

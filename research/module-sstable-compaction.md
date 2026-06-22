@@ -168,3 +168,4 @@ Compaction:
 - 深入 Bloom Filter、index summary、key cache、row index 和 BTI/Big 格式差异。
 - STCS/LCS/TWCS/UCS 的选择逻辑、配置参数和故障特征已在 `module-compaction-strategies-deep-dive.md` 展开；本模块继续聚焦 compaction 执行骨架和 on-disk format 差异。
 - `LifecycleTransaction`、`Tracker` 和 SSTable view 状态切换已在 `module-storage-engine-lifecycle-transaction.md` 展开。
+- Compaction 生产运行面的 `compaction_task_snapshot_space_reduction` 与 `compaction_disk_space_failure_coverage` 场景已在 `module-compaction-operations-failure-matrix.md` 和 `research/tools/check-compaction-operations-drift.py` 中补齐。
