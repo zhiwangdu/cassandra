@@ -25,6 +25,7 @@ CLIENT_STATE = "src/java/org/apache/cassandra/service/ClientState.java"
 READ_VERB = "src/java/org/apache/cassandra/db/ReadCommandVerbHandler.java"
 VIRTUAL_MUTATION = "src/java/org/apache/cassandra/db/virtual/VirtualMutation.java"
 SCHEMA_CONSTANTS = "src/java/org/apache/cassandra/schema/SchemaConstants.java"
+COLUMN_METADATA = "src/java/org/apache/cassandra/schema/ColumnMetadata.java"
 
 VIRTUAL_TABLE_TEST = "test/unit/org/apache/cassandra/cql3/validation/entities/VirtualTableTest.java"
 DESCRIBE_TEST = "test/unit/org/apache/cassandra/cql3/statements/DescribeStatementTest.java"
@@ -45,6 +46,7 @@ SCENARIO_IDS = (
     "system_virtual_schema_tables_contract",
     "system_virtual_schema_columns_schema_contract",
     "system_virtual_schema_columns_projection_contract",
+    "system_virtual_schema_columns_self_row_content_contract",
     "system_virtual_schema_read_single_partition_contract",
     "system_virtual_schema_read_range_contract",
     "system_virtual_schema_filtering_contract",
@@ -60,6 +62,18 @@ SOURCE_TOKEN_CHECKS = {
         'public static final String VIRTUAL_SCHEMA = "system_virtual_schema";',
         'public static final String VIRTUAL_VIEWS = "system_views";',
         "VIRTUAL_SYSTEM_KEYSPACE_NAMES",
+    ),
+    COLUMN_METADATA: (
+        "public static final int NO_POSITION = -1;",
+        "public enum ClusteringOrder",
+        "ASC, DESC, NONE",
+        "public enum Kind",
+        "PARTITION_KEY",
+        "CLUSTERING",
+        "REGULAR",
+        "STATIC",
+        "return this == PARTITION_KEY || this == CLUSTERING;",
+        "assert (position == NO_POSITION) == !kind.isPrimaryKeyKind();",
     ),
     VIRTUAL_SCHEMA: (
         "public final class VirtualSchemaKeyspace extends VirtualKeyspace",
@@ -225,10 +239,16 @@ DOC_REQUIRED_TOKENS = (
     "VirtualSchemaKeyspace",
     "VirtualKeyspaceRegistry",
     "VirtualColumns",
+    "ColumnMetadata",
     "SinglePartitionReadCommand",
     "PartitionRangeReadCommand",
     "StatementRestrictions",
     "DescribeStatementTest",
+    "system_virtual_schema_columns_self_row_content_contract",
+    "partition_key",
+    "clustering",
+    "regular",
+    "NO_POSITION",
 )
 
 TEST_ROOTS = (

@@ -56,6 +56,7 @@ SELECT ... FROM system_virtual_schema.columns
 | `system_virtual_schema_tables_contract` | `VirtualTables.data()` 输出 `table.keyspace`、`table.name`、`table.params.comment`，见 `VirtualSchemaKeyspace.java:65-97`。 | `DescribeStatementTest` 覆盖 `DESCRIBE TABLE system_virtual_schema.columns`。 | 新增 virtual table 的 comment 会进入自省结果，运维文档应同步描述读成本。 |
 | `system_virtual_schema_columns_schema_contract` | `VirtualColumns` schema 固定为 `keyspace_name`、`table_name`、`column_name`、`clustering_order`、`column_name_bytes`、`kind`、`position`、`type`，见 `VirtualSchemaKeyspace.java:100-125`。 | `DescribeStatementTest` 逐行断言 `VIRTUAL TABLE system_virtual_schema.columns` 的列和 primary key，见 `DescribeStatementTest.java:246-265`。 | 列名/类型变更会影响工具自省兼容性，应有显式 release note。 |
 | `system_virtual_schema_columns_projection_contract` | `VirtualColumns.data()` 从 `ColumnMetadata` 投影 `column.name`、`clusteringOrder()`、`column.name.bytes`、`column.kind`、`column.position()` 和 `column.type.asCQL3Type()`，见 `VirtualSchemaKeyspace.java:128-149`。 | 当前测试覆盖 DESCRIBE schema，但没有直接 `SELECT ... FROM system_virtual_schema.columns` 行内容断言。 | 新增 provider 列会自动出现；如果 `ColumnMetadata` 表示方式改变，CQL 自省输出也会变。 |
+| `system_virtual_schema_columns_self_row_content_contract` | `system_virtual_schema.columns` 自描述时，应从自身 `TableMetadata` 生成 8 行：3 个 primary-key 列和 5 个 regular 列；`ColumnMetadata.Kind` 输出 lower-case，regular column `position` 为 `NO_POSITION=-1`，非 clustering 列 `clustering_order=none`。 | `ColumnMetadata.Kind`/`ClusteringOrder`/`NO_POSITION` 定义见 `ColumnMetadata.java:49-68`、`:63-80`；当前没有直接 SELECT 行内容断言。 | focused test 应断言 `keyspace_name='system_virtual_schema' AND table_name='columns'` 下的 `keyspace_name/table_name/column_name/clustering_order/kind/position/type` 行内容。 |
 | `system_virtual_schema_read_single_partition_contract` | `SinglePartitionReadCommand.create()` 在 `metadata.isVirtual()` 时创建 `VirtualTableSinglePartitionReadCommand`，执行时通过 registry 调 `view.select(partitionKey, ...)`，见 `SinglePartitionReadCommand.java:133-147`、`1412-1418`。 | `VirtualTableTest.testReadOperationsOnReadOnlyTable()` 覆盖单分区、multi-partition、paging 和 count；`VirtualTableFromInternodeTest` 覆盖 remote single partition。 | virtual table 单分区读不触发 memtable/SSTable，也没有 repaired tracking。 |
 | `system_virtual_schema_read_range_contract` | `PartitionRangeReadCommand.create()` 在 virtual metadata 上创建 `VirtualTablePartitionRangeReadCommand`，执行时调用 `view.select(dataRange, ...)`，见 `PartitionRangeReadCommand.java:98-110`、`552-558`。 | `VirtualTableTest` 覆盖 token range + paging + `ALLOW FILTERING`。 | 对没有覆盖 `data(partitionKey)` 的 provider，range query 会触发 `data()` 全量构造。 |
 | `system_virtual_schema_filtering_contract` | `StatementRestrictions.requiresAllowFilteringIfNotSpecified()` 对 virtual table 查询 `VirtualTable.allowFilteringImplicitly()`，见 `StatementRestrictions.java:359-367`。 | `VirtualTableTest.testDisallowedFilteringOnRegularColumn()` / `testAllowedFilteringOnRegularColumn()` 覆盖开启/关闭 implicit filtering。 | provider 可选择强制 `ALLOW FILTERING`，但默认 true；高成本表应考虑覆盖该方法。 |
@@ -70,6 +71,21 @@ SELECT ... FROM system_virtual_schema.columns
 - 配置项：无用户可调配置；keyspace/table 由 daemon/test 注册，入口是 `CassandraDaemon.setupVirtualKeyspaces()` 和 `CQLTester.startServices()`。
 - Metrics：无独立 metrics；读成本体现为 provider `data()` 构造开销，不经过 SSTable read metrics。
 - 日志：无专属日志；`system_views.system_logs` 的 virtual appender 属于 logging slice，本矩阵只引用 daemon 注册顺序。
+
+## `columns` Self Row Content Target
+
+后续 focused test 可以先固定 `system_virtual_schema.columns` 对自身的投影；这组行不依赖额外 provider 注册，适合作为最小行内容合同。
+
+| `column_name` | `kind` | `position` | `type` | `clustering_order` |
+|---|---|---:|---|---|
+| `keyspace_name` | `partition_key` | 0 | `text` | `none` |
+| `table_name` | `clustering` | 0 | `text` | `asc` |
+| `column_name` | `clustering` | 1 | `text` | `asc` |
+| `clustering_order` | `regular` | -1 | `text` | `none` |
+| `column_name_bytes` | `regular` | -1 | `blob` | `none` |
+| `kind` | `regular` | -1 | `text` | `none` |
+| `position` | `regular` | -1 | `int` | `none` |
+| `type` | `regular` | -1 | `text` | `none` |
 
 ## 性能与故障关注
 
