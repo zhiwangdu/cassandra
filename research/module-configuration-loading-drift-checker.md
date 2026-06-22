@@ -8,6 +8,7 @@
 | --- | --- |
 | Source tokens | `Config`, `DatabaseDescriptor`, `YamlConfigurationLoader`, `DefaultLoader`, `Properties`, `Replacement`, `Replacements`, `Converters`, `CassandraRelevantProperties`, `ParameterizedClass`, `InheritingClass`, `Redacted`, `SettingsTable`, `StorageService` and `StorageServiceMBean` still contain the documented methods, constants and side effects. |
 | Counts | Protects current structural baselines: 414 non-static public field-style config declarations, 96 `Config` `@Replaces`, 22 converter enum entries, 328 relevant system properties, 27 `system_views.settings` compatibility names and 439 runtime setter declarations across `DatabaseDescriptor`/`StorageService`/`StorageServiceMBean`. |
+| Templates | Protects the compatible/latest distribution templates, `test/conf/latest_diff.yaml`, dtest latest-mode overrides and old/default test YAML fixtures. |
 | Tests | Ensures the matrix still points to loader selection, YAML/update map, system property overlay, converter, old YAML, compatibility diff, duplicate key, property flatten and typed system property tests. |
 | Docs | Ensures every `config_*` scenario appears in the matrix and checker docs, and that `README.md` plus `notes/source-map.md` link the new matrix and script. |
 | Gap | Confirms this research checker is not yet wired into `build.xml` or `.circleci/config.yml`; if it becomes a CI gate, the documented gap must be updated. |
@@ -21,7 +22,7 @@ python3 research/tools/check-configuration-loading-drift.py
 Expected output:
 
 ```text
-OK configuration loading drift checks passed (414 config fields, 96 replacements, 22 converters, 328 system properties, 27 settings aliases, 439 runtime setters, 16 scenarios)
+OK configuration loading drift checks passed (414 config fields, 96 replacements, 22 converters, 328 system properties, 27 settings aliases, 439 runtime setters, 17 scenarios)
 ```
 
 ## Scenario IDs
@@ -34,6 +35,7 @@ OK configuration loading drift checks passed (414 config fields, 96 replacements
 - `config_duplicate_and_replacement_guard_contract`
 - `config_compat_replacement_converter_contract`
 - `config_system_property_overlay_contract`
+- `config_template_defaults_contract`
 - `config_parameterized_nested_contract`
 - `config_unit_spec_contract`
 - `config_apply_simple_validation_contract`
