@@ -6,7 +6,7 @@
 
 | Scenario | Contract | Source anchors | Operational meaning |
 | --- | --- | --- | --- |
-| `research_checker_inventory_contract` | 当前 research 目录有 66 个 `research/tools/check-*.py` drift checker；新增或删除 checker 时必须同步本矩阵。 | `research/tools/check-research-drift-ci-gate-drift.py:17`, `research/tools/check-testing-ci-generator-drift.py:3`, `research/tools/check-nodetool-runbook-drift.py:3` | 让研究知识库自己的校验入口可枚举，而不是散落在 README 或提交记录里。 |
+| `research_checker_inventory_contract` | 当前 research 目录有 68 个 `research/tools/check-*.py` drift checker；新增或删除 checker 时必须同步本矩阵。 | `research/tools/check-research-drift-ci-gate-drift.py:17`, `research/tools/check-testing-ci-generator-drift.py:3`, `research/tools/check-nodetool-runbook-drift.py:3` | 让研究知识库自己的校验入口可枚举，而不是散落在 README 或提交记录里。 |
 | `research_checker_source_only_contract` | checker 都是 repo-local Python 脚本，以源码、测试文件和 research 文档为输入，不启动 Cassandra 节点。 | `research/tools/check-research-drift-ci-gate-drift.py:69`, `research/tools/check-read-repair-repaired-data-drift.py:3` | 适合本地快速跑，也适合作为轻量 CI/pre-commit 阶段，但不能替代 Java/runtime 测试。 |
 | `research_checker_json_output_contract` | 多数 checker 已提供 `--json` 输出；CI 接入时应优先保留机器可读 artifact，人工维护时仍使用文本输出。 | `research/tools/check-testing-ci-generator-drift.py:247`, `research/tools/check-nodetool-runbook-drift.py:135` | JSON 是后续统一 gate/报告的自然接口；没有 JSON 的老 checker 需要在接入前补齐或用 wrapper 规范化。 |
 | `research_checker_local_runner_contract` | `research/tools/run-research-drift-checks.py` 统一发现 `check-*.py`，支持 `--list`、`--pattern`、`--exclude`、`--jobs`、`--timeout` 和 `--json`，但自身不进入 checker inventory。 | `research/tools/run-research-drift-checks.py:16`, `research/tools/run-research-drift-checks.py:33`, `research/tools/run-research-drift-checks.py:87` | 先提供本地/CI 可复用入口，再决定是否接入 Ant/CircleCI/Jenkins。 |
