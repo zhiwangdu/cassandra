@@ -151,7 +151,8 @@ sstable* command main()
 - `info` 读取 hostId、gossip/native 状态、load、uptime、heap/offheap、exceptions、cache 信息，见 `src/java/org/apache/cassandra/tools/nodetool/Info.java:47-95`。
 - `netstats` 读取 streaming session、read repair、messaging pool pending/completed/dropped，见 `src/java/org/apache/cassandra/tools/nodetool/NetStats.java:45-95`。
 - `tablestats` 支持 sort/top/json/yaml 并构造 `TableStatsHolder`，见 `src/java/org/apache/cassandra/tools/nodetool/TableStats.java:79-107`。
-- `tpstats` 构造 `TpStatsHolder` 并按格式打印，见 `src/java/org/apache/cassandra/tools/nodetool/TpStats.java:36-47`。
+- `tpstats` 构造 `TpStatsHolder`，默认由 `TpStatsPrinter.DefaultPrinter` 读取 thread-pool JMX metrics 和 dropped-message queue wait latency，JSON/YAML 由 `TpStatsHolder.convert2Map()` 输出 `ThreadPools`、`DroppedMessage`、`WaitLatencies`，见 `src/java/org/apache/cassandra/tools/nodetool/TpStats.java:36-47`、`src/java/org/apache/cassandra/tools/nodetool/stats/TpStatsHolder.java:40-69`、`src/java/org/apache/cassandra/tools/nodetool/stats/TpStatsPrinter.java:52-104`。
+- `proxyhistograms` 读取 `ClientRequest` JMX timer scopes `Read`、`Write`、`RangeSlice`、`CASRead`、`CASWrite`、`ViewWrite`，按 50/75/95/98/99/min/max 输出 coordinator request latency percentile，见 `src/java/org/apache/cassandra/tools/nodetool/ProxyHistograms.java:32-56`、`src/java/org/apache/cassandra/tools/NodeProbe.java:2052-2065`。
 - `compactionstats` 读取 compaction manager proxy 和 compaction metrics，见 `src/java/org/apache/cassandra/tools/nodetool/CompactionStats.java:53-73`。
 - `snapshot` 构造 skipFlush/ttl/tag/keyspace.table 参数，见 `src/java/org/apache/cassandra/tools/nodetool/Snapshot.java:39-95`。
 - `flush` 对每个 keyspace 调用 `probe.forceKeyspaceFlush()`，见 `src/java/org/apache/cassandra/tools/nodetool/Flush.java:30-52`。

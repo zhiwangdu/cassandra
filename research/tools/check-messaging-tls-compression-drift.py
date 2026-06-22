@@ -274,7 +274,7 @@ DOC_TOKEN_CHECKS = {
         "module-messaging-tls-compression-compatibility.md",
         "module-messaging-tls-compression-drift-checker.md",
         "research/tools/check-messaging-tls-compression-drift.py",
-        "Messaging | 第五轮源码侧完成",
+        "Messaging | 第六轮源码侧完成",
         "TLS/compression mixed-version dtest",
     ),
     "research/notes/source-map.md": (

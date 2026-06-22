@@ -250,4 +250,4 @@ Source anchors: `src/java/org/apache/cassandra/service/StorageProxy.java:1519-15
 
 - 已新增 `research/tools/check-messaging-verb-matrix-drift.py`，用于检查 `Verb.java` 中所有 verb 常量是否进入本矩阵；后续可接入 CI。
 - 增加或取得 TLS optional/strict 与 `internode_compression=dc/all/none` 的 mixed-version distributed test，覆盖 messaging frame negotiation 与 streaming compression 分层。
-- 增加 nodetool/JMX drift 检查：`FailureDetectorMBean`、`GossiperMBean`、`MessagingServiceMBean` 方法与 nodetool 输出字段保持同步。
+- `FailureDetectorMBean` / `GossiperMBean` 的 nodetool/JMX 路由已由 `research/tools/check-jmx-nodeprobe-fd-drift.py` 保护；`MessagingServiceMBean` 方法、NodeProbe 路由和 `netstats` pool 聚合已由 `research/tools/check-messaging-mbean-netstats-drift.py` 保护。后续可把这些 checker 接入 CI。
