@@ -160,7 +160,7 @@ DOC_TOKEN_CHECKS = {
         "module-materialized-view-paired-replica-matrix.md",
         "module-materialized-view-paired-replica-drift-checker.md",
         "check-materialized-view-paired-replica-drift.py",
-        "78 个 research checker",
+        "79 个 research checker",
     ),
     SOURCE_MAP_DOC: (
         "Materialized view paired replica drift",
