@@ -2,7 +2,7 @@
 
 ## 范围
 
-本文补齐 `research/module-cache-index-view.md`、`research/module-cache-index-view-deep-dive.md` 和 `research/module-cache-index-view-vector-import-repair.md` 中偏 SSTable/index/MV 的 Cache 内容，单独固定 key cache、row cache、counter cache、chunk cache 的运行时控制、保存/加载、失效、指标、JMX/nodetool 和现有测试基线。Big/BTI key-cache on-disk 差异仍以 SSTable/Bloom/Index 文档为主；本篇聚焦通用 cache runtime contract。
+本文补齐 `research/module-cache-index-view.md`、`research/module-cache-index-view-deep-dive.md` 和 `research/module-cache-index-view-vector-import-repair.md` 中偏 SSTable/index/MV 的 Cache 内容，单独固定 key cache、row cache、counter cache、chunk cache 的运行时控制、保存/加载、失效、指标、JMX/nodetool 和现有测试基线。Big/BTI key-cache on-disk 差异仍以 SSTable/Bloom/Index 文档为主；本篇聚焦通用 cache runtime contract。operator-facing 命令面的细分合同已拆到 `research/module-nodetool-cache-runtime-matrix.md`，并由 `research/tools/check-nodetool-cache-runtime-drift.py` 保护。
 
 ## 场景矩阵
 
@@ -21,7 +21,7 @@
 | `cache_metrics_virtual_table_contract` | `InstrumentingCache.get()` 标记 requests/hits/misses，`clear()` 重建 metrics；`CacheMetrics` 暴露 Capacity/Size/Entries/Hits/Misses/Requests/HitRate；`CachesTable` 将 chunks/counters/keys/rows 映射到 `system_views.caches`。见 `InstrumentingCache.java:34-123`、`CacheMetrics.java:32-114`、`CachesTable.java:27-81`。 | `CacheMetricsTest.testCacheMetrics()` 覆盖 basic counters；缺 `system_views.caches` focused virtual table test。 |
 | `cache_nodetool_jmx_surface_contract` | `NodeTool` 注册 `invalidatekeycache`、`invalidaterowcache`、`invalidatecountercache`、`setcachecapacity`、`setcachekeystosave`；`NodeProbe` 代理到 CacheService MBean；`nodetool info` 输出 Key/Row/Counter/Chunk cache 指标。见 `NodeTool.java:166-207`、`NodeProbe.java:593-620`、`:688-690`、`:1088-1101`、`Info.java:91-138`。 | `NodeToolTest.testSetCacheCapacityWhenDisabled()` 覆盖 disabled row cache failure；其余 cache CLI 仍是 source-only contract。 |
 | `cache_existing_tests_baseline` | 当前测试基线包括 `AutoSavingCacheTest`、`KeyCacheTest`、`CounterCacheTest`、`RowCacheTest`、`RowCacheCQLTest`、`CacheMetricsTest` 和 `NodeToolTest.testSetCacheCapacityWhenDisabled()`。 | checker 保护这些测试名和关键断言继续存在。 |
-| `cache_runtime_operator_gap` | 仍缺 operator-facing cache runtime 专项测试：`setcachekeystosave` 重新 schedule、三种 invalidate nodetool 命令、`system_views.caches` rows、chunk cache file invalidation 和 save period runtime mutation。 | 保留 explicit gap；如果新增测试，应同步更新本矩阵和 checker 的 negative scan。 |
+| `cache_runtime_operator_gap` | 仍缺 operator-facing cache runtime 专项测试：`setcachekeystosave` 重新 schedule、三种 invalidate nodetool 命令、`system_views.caches` rows、chunk cache file invalidation 和 save period runtime mutation；命令源码合同见 `research/module-nodetool-cache-runtime-matrix.md`。 | 保留 explicit gap；如果新增测试，应同步更新本矩阵、`research/tools/check-cache-runtime-persistence-drift.py` 和 `research/tools/check-nodetool-cache-runtime-drift.py` 的 negative scan。 |
 
 ## 设计目标
 
