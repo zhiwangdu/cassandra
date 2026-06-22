@@ -2,7 +2,7 @@
 
 ## 目标
 
-Materialized View 链路说明一个 base table mutation 如何在 base replica 上判断是否影响 view，读取旧行，生成 view mutation，并按 base/view token 的 paired replica 规则写入 view。该文档聚焦写入更新链路，build/rebuild 和 repair-MV 后续单独展开。
+Materialized View 链路说明一个 base table mutation 如何在 base replica 上判断是否影响 view，读取旧行，生成 view mutation，并按 base/view token 的 paired replica 规则写入 view。该文档聚焦写入更新链路；build/rebuild、checkpoint、`system_distributed.view_build_status` 和 nodetool 状态面已单独展开在 `research/module-materialized-view-build-status-matrix.md`，paired replica 算法与 range-movement fallback 已单独展开在 `research/module-materialized-view-paired-replica-matrix.md`，repair-MV 写路径单独展开在 `research/module-repair-materialized-view-consistency-matrix.md`。
 
 ## 文字版调用图
 
@@ -110,6 +110,26 @@ StorageProxy.mutateMV(baseKey, viewMutations, writeCommitLog, baseComplete, requ
 - 正常状态下，MV 使用 `ConsistencyLevel.ONE` 和 local batchlog cleanup；base token 由 base key 计算，view token 由 view mutation key 计算，见 `src/java/org/apache/cassandra/service/StorageProxy.java:1031-1041`。
 - `ViewUtils.getViewNaturalEndpoint(...)` 根据 base token/view token 找 paired endpoint，见 `src/java/org/apache/cassandra/service/StorageProxy.java:1044-1050`。
 - 若 paired endpoint 是本机且没有 pending replicas，可直接 `mutation.apply(writeCommitLog)` 并减少 batchlog cleanup 计数，见 `src/java/org/apache/cassandra/service/StorageProxy.java:1064-1075`。
+- 配对算法细节、NTS local-DC filter、shared endpoint filter、pending endpoint ordinary write、`Stage.VIEW_MUTATION` 和 range movement distributed gap 由 `research/tools/check-materialized-view-paired-replica-drift.py` 保护。
+
+## Build And Status
+
+```text
+CREATE MATERIALIZED VIEW / schema reload
+  -> ViewManager.reload(buildAllViews)
+     -> View.build()
+        -> ViewBuilder.start()
+           -> system_distributed.view_build_status = STARTED
+           -> base CFS force flush with VIEW_BUILD_STARTED
+           -> load system.view_builds_in_progress checkpoints
+           -> split local replica ranges into ViewBuilderTask
+           -> CompactionManager.submitViewBuilder(...)
+              -> ViewBuildExecutor
+              -> ViewBuilderTask reads base rows and calls StorageProxy.mutateMV(...)
+           -> system.built_views and system_distributed.view_build_status = SUCCESS
+```
+
+Build/status details, resume checkpoints, retry semantics, `viewbuildstatus`, concurrent view builder controls and the current CLI test gap are protected by `research/tools/check-materialized-view-build-status-drift.py`.
 
 ## 观测与排查
 
@@ -138,6 +158,4 @@ StorageProxy.mutateMV(baseKey, viewMutations, writeCommitLog, baseComplete, requ
 
 ## 待继续
 
-- 展开 `ViewBuilder`、`ViewBuilderTask`、system_distributed build status 和 view build resume。
 - 展开 repair/streaming 与 MV：`materialized_views_on_repair_enabled`、view SSTable streaming、auto repair config。
-- 展开 `ViewUtils.getViewNaturalEndpoint()` 的 paired replica 算法和 range movement corner cases。
