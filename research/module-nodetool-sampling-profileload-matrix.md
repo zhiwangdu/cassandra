@@ -1,0 +1,63 @@
+# Nodetool Sampling And ProfileLoad Matrix
+
+This matrix covers `nodetool profileload` and its deprecated wrapper `toppartitions`. These commands expose low-footprint, short-window table sampling for active partitions, local read time, row/tombstone/SSTable counts and CAS contention. The implementation spans nodetool argument validation, `StorageServiceMBean`, `SamplingManager`, table-local `Sampler` instances and read/write/CAS update sites.
+
+## Source Contract
+
+| Scenario | Contract | Source anchors | Operational meaning |
+| --- | --- | --- | --- |
+| `profileload_command_surface_contract` | `ProfileLoad` is registered by `NodeTool` as `profileload`; `TopPartitions` is also registered as deprecated `toppartitions` and inherits `ProfileLoad` behavior. | `src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:46`、`src/java/org/apache/cassandra/tools/nodetool/TopPartitions.java:22`、`src/java/org/apache/cassandra/tools/nodetool/TopPartitions.java:24`、`src/java/org/apache/cassandra/tools/NodeTool.java:182`、`src/java/org/apache/cassandra/tools/NodeTool.java:237` | Operators should prefer `profileload`; `toppartitions` remains a compatibility alias. |
+| `profileload_argument_guard_contract` | Arguments allow `[ks table duration]`, `[ks table]`, `[duration]` or no args; `*` is converted to nullable keyspace/table. `-k` must be positive and smaller than `-s`; capacity is capped at 1024; duration must be positive; scheduled interval must be at least duration. | `src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:73`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:76`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:79`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:88`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:103`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:106`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:108` | The capacity/top constraints are memory and accuracy controls; long-running scheduled sampling should be explicitly scoped. |
+| `profileload_sampler_selection_contract` | Default samplers are all `SamplerType` values; `-a` accepts a comma-separated list and validates each name against the enum. | `src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:58`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:113`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:117`、`src/java/org/apache/cassandra/metrics/Sampler.java:49` | Invalid sampler names fail before any sampling starts. |
+| `profileload_blocking_sample_contract` | Without `--interval`, all-table/all-keyspace sampling calls `StorageServiceMBean.samplePartitions()` through `NodeProbe.getPartitionSample(ks, ...)`; single-table sampling calls CFS MBean `beginLocalSampling()`, sleeps for duration, then calls `finishLocalSampling()`. | `src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:161`、`src/java/org/apache/cassandra/tools/NodeProbe.java:567`、`src/java/org/apache/cassandra/tools/NodeProbe.java:572`、`src/java/org/apache/cassandra/tools/NodeProbe.java:577`、`src/java/org/apache/cassandra/tools/NodeProbe.java:579`、`src/java/org/apache/cassandra/tools/NodeProbe.java:583` | Blocking mode pauses the command until the sample window closes; sampling only records events that occur during that window. |
+| `profileload_scheduled_job_contract` | `--interval` or `--stop` routes to `NodeProbe.handleScheduledSampling()`, which starts/stops `StorageServiceMBean.startSamplingPartitions()` / `stopSamplingPartitions()`. `--list` prints `StorageServiceMBean.getSampleTasks()` as KEYSPACE/TABLE rows. | `src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:126`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:130`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:141`、`src/java/org/apache/cassandra/tools/nodetool/ProfileLoad.java:146`、`src/java/org/apache/cassandra/tools/NodeProbe.java:548`、`src/java/org/apache/cassandra/tools/NodeProbe.java:562` | Scheduled jobs run in the node process and log results; they must be stopped explicitly or by scope. |
+| `samplingmanager_overlap_contract` | `SamplingManager` tracks active/canceling jobs by `JobId`, rejects all-table overlaps, exact duplicates and keyspace-wide overlaps, and keeps canceling tasks visible until the final schedule completes. | `src/java/org/apache/cassandra/metrics/SamplingManager.java:54`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:62`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:107`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:144`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:164`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:183` | Duplicate or overlapping profile jobs are rejected to avoid mixing sample windows and overloading samplers. |
+| `samplingmanager_background_cycle_contract` | Scheduled jobs begin sampling on optional tasks, schedule a finish runnable after interval, aggregate top-K results, log formatted output, then either resubmit another begin runnable or remove the task if canceled. | `src/java/org/apache/cassandra/metrics/SamplingManager.java:194`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:201`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:206`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:225`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:237`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:248`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:255`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:258` | A failed `finishLocalSampling()` aborts the background job and logs a warning; successful jobs emit result tables to logs. |
+| `sampler_type_output_contract` | `SamplerType` defines READS, WRITES, LOCAL_READ_TIME, READ_ROW_COUNT, READ_TOMBSTONE_COUNT, READ_SSTABLE_COUNT, WRITE_SIZE and CAS_CONTENTIONS plus their output columns. `SamplingManager.formatResult()` iterates all enum values but prints only requested targets. | `src/java/org/apache/cassandra/metrics/Sampler.java:49`、`src/java/org/apache/cassandra/metrics/Sampler.java:51`、`src/java/org/apache/cassandra/metrics/Sampler.java:53`、`src/java/org/apache/cassandra/metrics/Sampler.java:57`、`src/java/org/apache/cassandra/metrics/Sampler.java:63`、`src/java/org/apache/cassandra/metrics/Sampler.java:69`、`src/java/org/apache/cassandra/metrics/Sampler.java:74`、`src/java/org/apache/cassandra/metrics/Sampler.java:79`、`src/java/org/apache/cassandra/metrics/SamplingManager.java:67` | Output shape depends on sampler type: frequency samplers include error, max samplers usually print a measured value column. |
+| `sampler_execution_model_contract` | `Sampler.samplerExecutor` is a single-threaded JMX-internal executor with queue limit 1000 and self-drop metrics on rejection. `FrequencySampler` uses stream-summary top-K with error, while `MaxSampler` keeps a bounded max priority queue. | `src/java/org/apache/cassandra/metrics/Sampler.java:99`、`src/java/org/apache/cassandra/metrics/Sampler.java:109`、`src/java/org/apache/cassandra/metrics/FrequencySampler.java:31`、`src/java/org/apache/cassandra/metrics/FrequencySampler.java:55`、`src/java/org/apache/cassandra/metrics/FrequencySampler.java:67`、`src/java/org/apache/cassandra/metrics/MaxSampler.java:40`、`src/java/org/apache/cassandra/metrics/MaxSampler.java:52` | Sampling is approximate and asynchronous; high-cardinality activity can increase error or drop samples under executor pressure. |
+| `tablemetrics_sampler_registration_contract` | `TableMetrics` creates one sampler per `SamplerType` and stores them in an enum map. Partition-key samplers convert keys through table metadata; local read time stores the CQL string. | `src/java/org/apache/cassandra/metrics/TableMetrics.java:254`、`src/java/org/apache/cassandra/metrics/TableMetrics.java:418`、`src/java/org/apache/cassandra/metrics/TableMetrics.java:419`、`src/java/org/apache/cassandra/metrics/TableMetrics.java:447`、`src/java/org/apache/cassandra/metrics/TableMetrics.java:480`、`src/java/org/apache/cassandra/metrics/TableMetrics.java:487` | Result rows show logical partition keys where the table's partition key type can stringify the key bytes. |
+| `sampling_update_sites_contract` | Write, read, row/tombstone, SSTable count, local read time and CAS contention update sites call the corresponding table sampler. | `src/java/org/apache/cassandra/db/ColumnFamilyStore.java:1480`、`src/java/org/apache/cassandra/db/ColumnFamilyStore.java:1482`、`src/java/org/apache/cassandra/db/SinglePartitionReadCommand.java:916`、`src/java/org/apache/cassandra/db/SinglePartitionReadCommand.java:917`、`src/java/org/apache/cassandra/db/ReadCommand.java:611`、`src/java/org/apache/cassandra/db/ReadCommand.java:615`、`src/java/org/apache/cassandra/db/ReadExecutionController.java:134`、`src/java/org/apache/cassandra/db/ReadExecutionController.java:242`、`src/java/org/apache/cassandra/service/StorageProxy.java:455`、`src/java/org/apache/cassandra/service/paxos/Paxos.java:811` | Samplers observe local node activity, not cluster-wide traffic. Coordinator-only paths and replica-local paths can differ. |
+| `profileload_existing_test_baseline` | Unit tests cover service-level all-table and single-table sampling, row/tombstone/SSTable count samplers, scheduled start/stop. Distributed tests cover scheduled logs, `--list`, `--stop`, duplicate schedule rejection and missing scheduled task stop. Sampler primitive tests cover top-frequency, max and executor lifecycle behavior. | `test/unit/org/apache/cassandra/tools/TopPartitionsTest.java:55`、`test/unit/org/apache/cassandra/tools/TopPartitionsTest.java:71`、`test/unit/org/apache/cassandra/tools/TopPartitionsTest.java:94`、`test/unit/org/apache/cassandra/tools/TopPartitionsTest.java:110`、`test/unit/org/apache/cassandra/tools/TopPartitionsTest.java:214`、`test/distributed/org/apache/cassandra/distributed/test/ProfileLoadTest.java:35`、`test/distributed/org/apache/cassandra/distributed/test/ProfileLoadTest.java:109`、`test/unit/org/apache/cassandra/metrics/TopFrequencySamplerTest.java`、`test/unit/org/apache/cassandra/metrics/MaxSamplerTest.java`、`test/unit/org/apache/cassandra/metrics/SamplerTest.java` | Missing focused CLI tests remain for every sampler output column and invalid option combinations, but core scheduled/runtime behavior is covered. |
+
+## Call Graph
+
+```text
+nodetool profileload [-s capacity] [-k top] [-a samplers] [ks table duration | ks table | duration]
+  -> ProfileLoad.execute(NodeProbe)
+  -> validate capacity/top/duration/interval/sampler names
+  -> blocking all/all-keyspace:
+       NodeProbe.getPartitionSample(ks, ...)
+       -> StorageServiceMBean.samplePartitions(...)
+       -> StorageService.samplePartitions(...)
+       -> SamplingManager.getTables(ks, null)
+       -> ColumnFamilyStore.beginLocalSampling(...)
+       -> sleep(duration)
+       -> ColumnFamilyStore.finishLocalSampling(...)
+  -> blocking single table:
+       NodeProbe.getPartitionSample(ks, table, ...)
+       -> ColumnFamilyStoreMBean.beginLocalSampling(...)
+       -> sleep(duration)
+       -> ColumnFamilyStoreMBean.finishLocalSampling(...)
+  -> scheduled:
+       NodeProbe.handleScheduledSampling(...)
+       -> StorageService.startSamplingPartitions(...)
+       -> SamplingManager.register(...)
+       -> optionalTasks begin/end loop
+       -> SamplingManager.formatResult(...) to node logs
+```
+
+## Operational Notes
+
+- `profileload --list` reports scheduled jobs, not active blocking samples.
+- `profileload --stop` without keyspace/table attempts to stop all scheduled jobs.
+- `toppartitions` is a deprecated alias; operational runbooks should use `profileload`.
+- Capacity controls memory/accuracy; top count must remain smaller than capacity.
+- Results are local to the node contacted through nodetool/JMX.
+- The sampler executor is single-threaded; under overload, samples can be delayed or rejected.
+
+## Tests And Gaps
+
+- `TopPartitionsTest` covers service and CFS sampler behavior, including READS, WRITES, READ_ROW_COUNT, READ_TOMBSTONE_COUNT and READ_SSTABLE_COUNT.
+- `ProfileLoadTest` runs distributed nodetool commands for scheduled background profiling, list/stop and duplicate schedule rejection.
+- `test/unit/org/apache/cassandra/metrics/TopFrequencySamplerTest.java`, `test/unit/org/apache/cassandra/metrics/MaxSamplerTest.java` and `test/unit/org/apache/cassandra/metrics/SamplerTest.java` cover sampler data structures.
+- Remaining gap: add direct CLI assertions for `profileload -a LOCAL_READ_TIME,WRITE_SIZE,CAS_CONTENTIONS`, invalid `-k/-s/-i`, and `toppartitions` deprecation/help behavior.

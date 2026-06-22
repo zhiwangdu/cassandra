@@ -12,7 +12,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-EXPECTED_CHECKER_COUNT = 68
+EXPECTED_CHECKER_COUNT = 71
 
 MATRIX_DOC = "research/module-research-drift-ci-gate-matrix.md"
 CHECKER_DOC = "research/module-research-drift-ci-gate-drift-checker.md"
@@ -63,7 +63,7 @@ DOC_TOKENS = (
     ".circleci/config_template.yml",
     ".circleci/generate.sh",
     ".jenkins/Jenkinsfile",
-    "68",
+    "71",
     "Ant",
     "CircleCI",
     "Jenkins",
