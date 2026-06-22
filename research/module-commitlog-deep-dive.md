@@ -204,4 +204,5 @@ Startup replay:
 ## 待继续
 
 - `research/module-commitlog-cdc-pitr-runbook.md` 已补外部 CDC consumer contract/runbook，包括消费 offset、删除顺序、监控告警和下游 at-least-once 边界。
+- CommitLog durability/replay 的 `commitlog_append_record_crc` 与 `commitlog_cdc_raw_backpressure` 场景已由 `research/module-commitlog-durability-replay-matrix.md` 和 `research/tools/check-commitlog-durability-drift.py` 保护。
 - 仍需补真实外部 CDC consumer integration test 与备份系统 PITR rehearsal，例如 archive script 幂等性、跨节点快照一致性、restore dry-run 和 clock/timestamp audit。

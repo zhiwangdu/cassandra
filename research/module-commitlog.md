@@ -167,4 +167,5 @@ Flush clean:
 
 - `research/module-commitlog-deep-dive.md` 已覆盖 `AbstractCommitLogService`、segment allocation/backpressure、CDC、archiver/PITR、压缩/加密/direct I/O/mmap 与 replay error policy。
 - `research/module-commitlog-cdc-pitr-runbook.md` 已补外部 CDC consumer contract、`cdc_raw` 删除顺序、repair CDC write-path 和 PITR archive/restore 操作边界。
+- CommitLog durability/replay 的 `commitlog_append_record_crc` 与 `commitlog_cdc_raw_backpressure` 场景已由 `research/module-commitlog-durability-replay-matrix.md` 和 `research/tools/check-commitlog-durability-drift.py` 保护。
 - 可选继续补真实外部 CDC consumer integration test 与备份系统 PITR rehearsal。

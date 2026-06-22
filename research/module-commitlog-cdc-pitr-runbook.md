@@ -184,3 +184,4 @@ restore rehearsal / startup
 
 - 仍缺真实外部 CDC consumer integration test：包括 downstream checkpoint、consumer crash/restart、partial segment、schema evolution 和 duplicate delivery 处理。
 - 仍缺真实备份系统 PITR rehearsal：包括跨节点 snapshot 一致性、archive script 幂等性、对象存储延迟、restore dry-run 和 clock/timestamp audit。
+- CommitLog durability/replay 的 `commitlog_append_record_crc` 与 `commitlog_cdc_raw_backpressure` 场景已由 `research/module-commitlog-durability-replay-matrix.md` 和 `research/tools/check-commitlog-durability-drift.py` 保护。
